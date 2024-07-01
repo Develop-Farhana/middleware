@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\LoginController;
@@ -27,4 +28,13 @@ Route::post('logout', [LoginController::class, 'logout'])->name('logout');
 Route::get('dashboard', function () {
     return view('dashboard');
 })->name('dashboard')->middleware('auth');
+
+
+
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::post('/tasks/update-status', [DashboardController::class, 'updateStatus'])->name('tasks.updateStatus');
+    Route::post('/tasks/store', [DashboardController::class, 'store'])->name('tasks.store');
+});
 
