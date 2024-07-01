@@ -9,7 +9,12 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $tasks = Task::all();
+        // Assuming you are using Laravel's built-in authentication system
+        $user = auth()->user();
+    
+        // Retrieve tasks associated with the logged-in user
+        $tasks = Task::where('user_id', $user->id)->get();
+    
         return view('dashboard', ['tasks' => $tasks]);
     }
 
