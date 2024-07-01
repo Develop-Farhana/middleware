@@ -1,4 +1,3 @@
-<!-- resources/views/dashboard.blade.php -->
 <!DOCTYPE html>
 <html>
 <head>
@@ -40,25 +39,26 @@
     </div>
 </div>
 <div class="container table-container">
-<div class="card mt-4">
-    <div class="card-header">Add Task</div>
-    <div class="card-body">
-        <form id="add-task-form">
-            <div class="form-group">
-                <label for="task">Task</label>
-                <input type="text" class="form-control" id="task" name="task" required>
-            </div>
-            <div class="form-group">
-                <label for="status">Status</label>
-                <select class="form-control" id="status" name="status">
-                    <option value="pending">Pending</option>
-                    <option value="done">Done</option>
-                </select>
-            </div>
-            <button type="submit" class="btn btn-primary">Add Task</button>
-        </form>
+    <div class="card mt-4">
+        <div class="card-header">Add Task</div>
+        <div class="card-body">
+            <form id="add-task-form" action="{{ route('tasks.store') }}" method="POST">
+                @csrf
+                <div class="form-group">
+                    <label for="task">Task</label>
+                    <input type="text" class="form-control" id="task" name="task" required>
+                </div>
+                <div class="form-group">
+                    <label for="status">Status</label>
+                    <select class="form-control" id="status" name="status">
+                        <option value="pending">Pending</option>
+                        <option value="done">Done</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Task</button>
+            </form>
+        </div>
     </div>
-</div>
 
     <h1 class="text-center mt-4">Existing Tasks</h1>
     @if($tasks->isEmpty())
@@ -83,20 +83,21 @@
                         </td>
                     
                         <td>
-                        <button class="btn btn-sm btn-success" onclick="updateStatus({{ $task->id }}, 'done')">Mark as Done</button>
-                        <button class="btn btn-sm btn-warning" onclick="updateStatus({{ $task->id }}, 'pending')">Mark as Pending</button>
-                    </td>
-
+                            <button class="btn btn-sm btn-success" onclick="updateStatus({{ $task->id }}, 'done')">Mark as Done</button>
+                            <button class="btn btn-sm btn-warning" onclick="updateStatus({{ $task->id }}, 'pending')">Mark as Pending</button>
+                        </td>
                     </tr>
                 @endforeach
             </tbody>
         </table>
     @endif
 </div>
+
 <!-- Bootstrap JS and dependencies -->
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
 <!-- AJAX for updating task status and adding new tasks -->
 <script>
     function updateStatus(taskId, status) {
@@ -111,7 +112,7 @@
             success: function(response) {
                 if (response.success) {
                     let statusBadge = status === 'done' ? 'badge-success' : 'badge-warning';
-                    let statusText = status === 'done' ? 'done' : 'Pending';
+                    let statusText = status === 'done' ? 'Done' : 'Pending';
                     $('#task-' + taskId + ' .badge')
                         .removeClass('badge-success badge-warning')
                         .addClass(statusBadge)
@@ -126,6 +127,53 @@
             }
         });
     }
+
+    $(document).ready(function() {
+        $('#add-task-form').submit(function(event) {
+            event.preventDefault(); // Prevent the form from submitting normally
+            
+            var formData = $(this).serialize(); // Serialize form data
+            
+            $.ajax({
+                url: $(this).attr('action'),
+                method: 'POST',
+                data: formData,
+                success: function(response) {
+                    if (response.success) {
+                        // Clear form fields on success
+                        $('#task').val('');
+                        $('#status').val('pending');
+                        
+                        // Append new task to task list
+                        var statusBadge = response.task.status === 'done' ? 'badge-success' : 'badge-warning';
+                        var statusText = response.task.status === 'done' ? 'Done' : 'Pending';
+                        var taskRow = `
+                            <tr id="task-${response.task.id}">
+                                <td>${response.task.task}</td>
+                                <td>
+                                    <span class="badge ${statusBadge}">${statusText}</span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-success" onclick="updateStatus(${response.task.id}, 'done')">Mark as Done</button>
+                                    <button class="btn btn-sm btn-warning" onclick="updateStatus(${response.task.id}, 'pending')">Mark as Pending</button>
+                                </td>
+                            </tr>
+                        `;
+                        
+                        $('#task-list').append(taskRow);
+                        
+                        alert('Task added successfully!');
+                    } else {
+                        alert('Failed to add task. Please try again.');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    alert('Failed to add task. Please try again.');
+                    console.error(xhr.responseText);
+                }
+            });
+        });
+    });
 </script>
 
 </body>

@@ -4,15 +4,14 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Task;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        // Assuming you are using Laravel's built-in authentication system
-        $user = auth()->user();
-    
         // Retrieve tasks associated with the logged-in user
+        $user = Auth::user();
         $tasks = Task::where('user_id', $user->id)->get();
     
         return view('dashboard', ['tasks' => $tasks]);
@@ -20,18 +19,40 @@ class DashboardController extends Controller
 
     public function updateStatus(Request $request)
     {
-        $task = Task::find($request->task_id);
-        if ($task) {
-            $task->status = $request->status;
+        $validatedData = $request->validate([
+            'task_id' => 'required|exists:tasks,id',
+            'status' => 'required|in:pending,done',
+        ]);
+
+        try {
+            $task = Task::findOrFail($validatedData['task_id']);
+            $task->status = $validatedData['status'];
             $task->save();
-            return response()->json(['success' => true, 'status' => $task->status, 'task' => $task]);
+
+            return response()->json(['success' => true, 'task' => $task]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Failed to update task status.']);
         }
-        return response()->json(['success' => false, 'message' => 'Task not found.']);
     }
 
     public function store(Request $request)
     {
-        $task = Task::create($request->all());
-        return response()->json(['success' => true, 'task' => $task]);
+        $validatedData = $request->validate([
+            'task' => 'required|string|max:255',
+            'status' => 'nullable|in:pending,done',
+        ]);
+
+        try {
+            $user = Auth::user();
+            $task = new Task();
+            $task->task = $validatedData['task'];
+            $task->status = $validatedData['status'] ?? 'pending';
+            $task->user_id = $user->id;
+            $task->save();
+
+            return response()->json(['success' => true, 'task' => $task]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Failed to add task.']);
+        }
     }
 }
